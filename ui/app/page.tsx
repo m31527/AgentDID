@@ -715,6 +715,191 @@ const CATEGORY_ICONS: Record<string, string> = {
   INFRASTRUCTURE: 'fa-server', SOCIAL: 'fa-comments',
 }
 
+// ── SDK Examples ─────────────────────────────────────────────────────────
+const SDK_TABS = [
+  {
+    id: 'typescript',
+    label: 'TypeScript',
+    icon: 'fa-js',
+    lang: 'TypeScript · Node.js',
+    code: `import { AgentPassport } from "@agentdid/sdk"
+
+const passport = await AgentPassport.create({
+  registryAddress: "0x05623871958D6d648953e64B1cdb562Adc28019B",
+  rpcUrl: "https://rpc.sepolia.org",
+}, process.env.AGENT_PRIVATE_KEY)
+
+// Build capability declaration
+const cap = AgentPassport.buildCapabilityDeclaration({
+  name: "MyBot",
+  version: "1.0.0",
+  purpose: "Research assistant — web search and summarization",
+  allowedActionTypes: ["llm_query", "web_search"],
+  riskLevel: RiskLevel.LOW,
+  category: AgentCategory.RESEARCH,
+})
+
+// Register on-chain (one time)
+await passport.register("MyBot", "1.0.0", cap)
+// → did:agent:0xABCD...
+
+// Log every action automatically
+await passport.logAction("llm_query", userPrompt, response, true)`,
+  },
+  {
+    id: 'python',
+    label: 'Python',
+    icon: 'fa-python',
+    lang: 'Python · LangChain',
+    code: `from web3 import Web3
+from eth_account import Account
+
+# Connect to AgentDID registry
+w3 = Web3(Web3.HTTPProvider("https://rpc.sepolia.org"))
+account = Account.from_key(os.environ["AGENT_PRIVATE_KEY"])
+
+REGISTRY = "0x05623871958D6d648953e64B1cdb562Adc28019B"
+# ABI available at github.com/m31527/AgentDID
+
+# Register agent
+capability_hash = w3.keccak(text=json.dumps(capability_doc))
+registry.functions.registerAgent(
+    account.address,
+    "MyLangChainBot",
+    "1.0.0",
+    "ipfs://Qm...",
+    capability_hash,
+    0,   # RiskLevel.LOW
+    1,   # AgentCategory.RESEARCH
+).transact({"from": account.address})
+
+# Wrap any LangChain tool call
+def logged_tool_call(tool, input_text):
+    output = tool.run(input_text)
+    input_hash  = w3.keccak(text=input_text)
+    output_hash = w3.keccak(text=output)
+    registry.functions.logAction(
+        "tool_use", input_hash, output_hash, True
+    ).transact({"from": account.address})
+    return output`,
+  },
+  {
+    id: 'rest',
+    label: 'REST API',
+    icon: 'fa-globe',
+    lang: 'REST · Any language',
+    code: `# Register an agent
+POST https://api.agentdid.org/v1/agents
+{
+  "name": "MyBot",
+  "version": "1.0.0",
+  "purpose": "Customer support assistant",
+  "category": "GENERAL",
+  "riskLevel": "LOW",
+  "allowedActionTypes": ["llm_query", "human_interaction"]
+}
+→ { "did": "did:agent:0xABCD...", "txHash": "0x..." }
+
+# Log an action
+POST https://api.agentdid.org/v1/agents/:did/actions
+{
+  "actionType": "llm_query",
+  "inputHash": "0x...",
+  "outputHash": "0x...",
+  "success": true
+}
+
+# Get agent history (public)
+GET https://api.agentdid.org/v1/agents/:did
+GET https://api.agentdid.org/v1/agents/:did/actions
+GET https://api.agentdid.org/v1/agents/:did/risk
+
+# Note: REST API coming in v0.2 — use SDK or direct contract today`,
+  },
+]
+
+function SDKSection() {
+  const [activeTab, setActiveTab] = useState('typescript')
+  const [copied, setCopied]       = useState(false)
+  const tab = SDK_TABS.find(t => t.id === activeTab)!
+
+  function copyCode() {
+    navigator.clipboard.writeText(tab.code)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  return (
+    <section className="bg-gray-950 py-16">
+      <div className="max-w-5xl mx-auto px-6">
+        <div className="text-center mb-10">
+          <h2 className="text-2xl font-bold text-white">
+            Integrate in Minutes
+          </h2>
+          <p className="text-gray-400 mt-2 text-sm">
+            Any language, any AI framework. Your agent gets a permanent on-chain identity with two function calls.
+          </p>
+        </div>
+
+        {/* Tab bar */}
+        <div className="flex gap-2 mb-0">
+          {SDK_TABS.map(t => (
+            <button
+              key={t.id}
+              onClick={() => setActiveTab(t.id)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-t-lg text-sm font-medium transition-colors ${
+                activeTab === t.id
+                  ? 'bg-gray-800 text-white'
+                  : 'text-gray-500 hover:text-gray-300'
+              }`}
+            >
+              <i className={`fa-brands ${t.icon}`} />
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Code block */}
+        <div className="rounded-b-2xl rounded-tr-2xl bg-gray-800 overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-700">
+            <span className="text-xs text-gray-400">
+              <i className="fa-solid fa-file-code mr-1.5" />
+              {tab.lang}
+            </span>
+            <button
+              onClick={copyCode}
+              className="text-xs text-gray-400 hover:text-white transition-colors flex items-center gap-1.5"
+            >
+              <i className={`fa-solid ${copied ? 'fa-check text-green-400' : 'fa-copy'}`} />
+              {copied ? 'Copied!' : 'Copy'}
+            </button>
+          </div>
+          <pre className="p-5 text-sm text-gray-300 overflow-x-auto leading-relaxed font-mono">
+            <code>{tab.code}</code>
+          </pre>
+        </div>
+
+        {/* Bottom links */}
+        <div className="flex flex-wrap items-center justify-center gap-6 mt-8 text-sm">
+          <a href="https://github.com/m31527/AgentDID" target="_blank" rel="noopener noreferrer"
+            className="text-gray-400 hover:text-white transition-colors flex items-center gap-2">
+            <i className="fa-brands fa-github" /> View full SDK on GitHub
+          </a>
+          <a href="https://sepolia.etherscan.io/address/0x05623871958D6d648953e64B1cdb562Adc28019B#code"
+            target="_blank" rel="noopener noreferrer"
+            className="text-gray-400 hover:text-white transition-colors flex items-center gap-2">
+            <i className="fa-solid fa-file-contract" /> Read contract ABI
+          </a>
+          <span className="text-gray-600 flex items-center gap-2">
+            <i className="fa-solid fa-cube" />
+            Registry: 0x0562…019B · Sepolia
+          </span>
+        </div>
+      </div>
+    </section>
+  )
+}
+
 // ── Agent Explorer ────────────────────────────────────────────────────────
 function AgentExplorer({ agents, loading }: { agents: ExplorerAgent[]; loading: boolean }) {
   const [selected, setSelected] = useState<ExplorerAgent | null>(null)
@@ -1098,6 +1283,9 @@ export default function Home() {
           </div>
         </section>
       )}
+
+      {/* ── SDK Examples ── */}
+      <SDKSection />
 
       {/* ── Agent Explorer ── */}
       <AgentExplorer agents={explorerAgents} loading={explorerLoading} />
