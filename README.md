@@ -10,6 +10,13 @@
 [![Protocol](https://img.shields.io/badge/DID%20Method-did%3Aagent-purple)](docs/did-spec.md)
 [![Status](https://img.shields.io/badge/Status-Alpha-orange)](CHANGELOG.md)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+[![Sepolia](https://img.shields.io/badge/Sepolia-Deployed-blue)](https://sepolia.etherscan.io/address/0x05623871958D6d648953e64B1cdb562Adc28019B#code)
+
+### Live Testnet Contract
+
+| Network | Address | Explorer |
+|---|---|---|
+| **Ethereum Sepolia** | `0x05623871958D6d648953e64B1cdb562Adc28019B` | [View on Etherscan ↗](https://sepolia.etherscan.io/address/0x05623871958D6d648953e64B1cdb562Adc28019B#code) |
 
 </div>
 
@@ -143,6 +150,24 @@ npm install
 ```bash
 cp .env.example .env
 # Add your ANTHROPIC_API_KEY
+```
+
+To use the **live Sepolia testnet contract** (no deployment needed):
+
+```bash
+# .env
+ANTHROPIC_API_KEY=sk-ant-...
+RPC_URL=https://rpc.sepolia.org
+AGENT_PRIVATE_KEY=0x<your_wallet_private_key>
+```
+
+```typescript
+import { AgentPassport } from "./src/passport"
+
+const passport = await AgentPassport.create({
+  registryAddress: "0x05623871958D6d648953e64B1cdb562Adc28019B",  // Sepolia
+  rpcUrl: "https://rpc.sepolia.org",
+})
 ```
 
 ### 3. Run Tests
