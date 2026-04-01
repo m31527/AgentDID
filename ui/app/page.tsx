@@ -101,23 +101,66 @@ function ErrorBox({ message }: { message: string }) {
   )
 }
 
+// ── Constants ─────────────────────────────────────────────────────────────
+const CATEGORIES = [
+  { value: 'GENERAL',        label: 'General',        icon: 'fa-robot',         desc: 'Multi-purpose agent' },
+  { value: 'RESEARCH',       label: 'Research',        icon: 'fa-magnifying-glass', desc: 'Information gathering & analysis' },
+  { value: 'FINANCE',        label: 'Finance',         icon: 'fa-chart-line',    desc: 'Financial data & reporting' },
+  { value: 'MEDICAL',        label: 'Medical',         icon: 'fa-heart-pulse',   desc: 'Health & medical assistance' },
+  { value: 'LEGAL',          label: 'Legal',           icon: 'fa-scale-balanced', desc: 'Legal research & drafting' },
+  { value: 'INFRASTRUCTURE', label: 'Infrastructure',  icon: 'fa-server',        desc: 'System operations & DevOps' },
+  { value: 'SOCIAL',         label: 'Social',          icon: 'fa-comments',      desc: 'Communication & social tasks' },
+]
+
+const RISK_LEVELS = [
+  { value: 'LOW',      label: 'Low',      color: 'text-green-600 bg-green-50 border-green-200',   desc: 'Read-only, no sensitive data' },
+  { value: 'MEDIUM',   label: 'Medium',   color: 'text-yellow-600 bg-yellow-50 border-yellow-200', desc: 'Limited write access' },
+  { value: 'HIGH',     label: 'High',     color: 'text-orange-600 bg-orange-50 border-orange-200', desc: 'Broad access, human oversight required' },
+  { value: 'CRITICAL', label: 'Critical', color: 'text-red-600 bg-red-50 border-red-200',          desc: 'Financial or infrastructure control' },
+]
+
+const ACTION_TYPES = [
+  { value: 'llm_query',              label: 'LLM Query',           icon: 'fa-brain' },
+  { value: 'web_search',             label: 'Web Search',          icon: 'fa-globe' },
+  { value: 'file_read',              label: 'File Read',           icon: 'fa-file' },
+  { value: 'file_write',             label: 'File Write',          icon: 'fa-file-pen' },
+  { value: 'tool_use',               label: 'Tool Use',            icon: 'fa-screwdriver-wrench' },
+  { value: 'code_execution',         label: 'Code Execution',      icon: 'fa-code' },
+  { value: 'financial_transaction',  label: 'Financial Transaction', icon: 'fa-money-bill-transfer' },
+  { value: 'agent_delegation',       label: 'Agent Delegation',    icon: 'fa-share-nodes' },
+  { value: 'human_interaction',      label: 'Human Interaction',   icon: 'fa-user' },
+  { value: 'contract_call',          label: 'Contract Call',       icon: 'fa-file-contract' },
+]
+
 // ── Hero / Register Section ────────────────────────────────────────────────
 function HeroRegister({ agent, onRegister }: {
   agent: AgentState | null
-  onRegister: (name: string, version: string) => Promise<void>
+  onRegister: (name: string, version: string, purpose: string, category: string, riskLevel: string, allowedActionTypes: string[], organization: string) => Promise<void>
 }) {
-  const [step, setStep]           = useState<'idle' | 'form' | 'loading' | 'done'>('idle')
-  const [name, setName]           = useState('')
-  const [version, setVersion]     = useState('1.0.0')
-  const [error, setError]         = useState('')
+  const [step, setStep]         = useState<'idle' | 'form' | 'loading'>('idle')
+  const [error, setError]       = useState('')
+
+  // Form fields
+  const [name, setName]                 = useState('')
+  const [version, setVersion]           = useState('1.0.0')
+  const [purpose, setPurpose]           = useState('')
+  const [category, setCategory]         = useState('GENERAL')
+  const [riskLevel, setRiskLevel]       = useState('LOW')
+  const [organization, setOrganization] = useState('')
+  const [allowedActions, setAllowedActions] = useState<string[]>(['llm_query'])
+
+  function toggleAction(value: string) {
+    setAllowedActions(prev =>
+      prev.includes(value) ? prev.filter(v => v !== value) : [...prev, value]
+    )
+  }
 
   async function handleRegister() {
-    if (!name.trim()) return
+    if (!name.trim() || !purpose.trim() || allowedActions.length === 0) return
     setStep('loading')
     setError('')
     try {
-      await onRegister(name.trim(), version)
-      setStep('done')
+      await onRegister(name.trim(), version, purpose.trim(), category, riskLevel, allowedActions, organization.trim())
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : String(e))
       setStep('form')
@@ -171,7 +214,7 @@ function HeroRegister({ agent, onRegister }: {
   }
 
   return (
-    <div className="max-w-lg mx-auto">
+    <div className="max-w-2xl mx-auto">
       {step === 'idle' && (
         <div className="text-center">
           <button
@@ -186,38 +229,165 @@ function HeroRegister({ agent, onRegister }: {
       )}
 
       {(step === 'form' || step === 'loading') && (
-        <div className="card p-6 space-y-4">
-          <h3 className="font-semibold text-gray-800 flex items-center gap-2">
-            <i className="fa-solid fa-id-card text-indigo-500" />
-            Register your Agent
-          </h3>
+        <div className="card p-8 space-y-6 text-left">
+          <div>
+            <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+              <i className="fa-solid fa-id-card text-indigo-500" />
+              Register your Agent
+            </h3>
+            <p className="text-sm text-gray-500 mt-1">
+              This information is hashed and stored permanently on-chain as your agent's capability declaration.
+            </p>
+          </div>
 
           {error && <ErrorBox message={error} />}
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Agent Name</label>
-            <input
-              value={name}
-              onChange={e => setName(e.target.value)}
-              placeholder="e.g. ResearchBot, MyAssistant"
-              disabled={step === 'loading'}
-              onKeyDown={e => e.key === 'Enter' && handleRegister()}
-            />
+          {/* ── Basic Info ── */}
+          <div className="space-y-4">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Basic Info</p>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Agent Name <span className="text-red-400">*</span>
+                </label>
+                <input
+                  value={name} onChange={e => setName(e.target.value)}
+                  placeholder="e.g. ResearchBot, LegalAssistant"
+                  disabled={step === 'loading'}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Version</label>
+                <input
+                  value={version} onChange={e => setVersion(e.target.value)}
+                  placeholder="1.0.0"
+                  disabled={step === 'loading'}
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Purpose / Description <span className="text-red-400">*</span>
+              </label>
+              <textarea
+                value={purpose} onChange={e => setPurpose(e.target.value)}
+                placeholder="Describe what this agent is designed to do. e.g. 'Assists users with legal document research and summarization. Does not provide legal advice.'"
+                rows={3} disabled={step === 'loading'}
+                className="resize-none"
+              />
+              <p className="text-xs text-gray-400 mt-1">
+                <i className="fa-solid fa-circle-info mr-1" />
+                Be specific — this helps the community understand and oversee your agent's intent.
+              </p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Organization (optional)</label>
+              <input
+                value={organization} onChange={e => setOrganization(e.target.value)}
+                placeholder="Company or individual name"
+                disabled={step === 'loading'}
+              />
+            </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Version</label>
-            <input
-              value={version}
-              onChange={e => setVersion(e.target.value)}
-              placeholder="1.0.0"
-              disabled={step === 'loading'}
-            />
+
+          {/* ── Category ── */}
+          <div className="space-y-3">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+              <i className="fa-solid fa-tag mr-1" /> Category
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {CATEGORIES.map(c => (
+                <button
+                  key={c.value}
+                  type="button"
+                  onClick={() => setCategory(c.value)}
+                  disabled={step === 'loading'}
+                  className={`p-3 rounded-xl border text-left transition-all ${
+                    category === c.value
+                      ? 'border-indigo-400 bg-indigo-50 text-indigo-700'
+                      : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                  }`}
+                >
+                  <i className={`fa-solid ${c.icon} mb-1.5 block`} />
+                  <p className="text-xs font-semibold">{c.label}</p>
+                  <p className="text-xs text-gray-400 leading-tight mt-0.5">{c.desc}</p>
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="flex gap-2 pt-1">
+
+          {/* ── Allowed Action Types ── */}
+          <div className="space-y-3">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+              <i className="fa-solid fa-list-check mr-1" /> Allowed Action Types <span className="text-red-400">*</span>
+            </p>
+            <p className="text-xs text-gray-500">
+              Select only what this agent genuinely needs. This becomes part of the on-chain declaration — anomaly detection will alert if the agent exceeds these boundaries.
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {ACTION_TYPES.map(a => {
+                const selected = allowedActions.includes(a.value)
+                return (
+                  <button
+                    key={a.value}
+                    type="button"
+                    onClick={() => toggleAction(a.value)}
+                    disabled={step === 'loading'}
+                    className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm transition-all ${
+                      selected
+                        ? 'border-indigo-400 bg-indigo-50 text-indigo-700 font-medium'
+                        : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                    }`}
+                  >
+                    <i className={`fa-solid ${a.icon} text-xs ${selected ? 'text-indigo-500' : 'text-gray-400'}`} />
+                    <span className="text-xs leading-tight">{a.label}</span>
+                    {selected && <i className="fa-solid fa-check text-xs text-indigo-500 ml-auto" />}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* ── Risk Level ── */}
+          <div className="space-y-3">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+              <i className="fa-solid fa-shield-halved mr-1" /> Risk Level
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {RISK_LEVELS.map(r => (
+                <button
+                  key={r.value}
+                  type="button"
+                  onClick={() => setRiskLevel(r.value)}
+                  disabled={step === 'loading'}
+                  className={`p-3 rounded-xl border text-left transition-all ${
+                    riskLevel === r.value
+                      ? r.color + ' font-semibold'
+                      : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                  }`}
+                >
+                  <p className="text-sm font-semibold">{r.label}</p>
+                  <p className="text-xs leading-tight mt-0.5 opacity-80">{r.desc}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* ── Capability Hash Preview ── */}
+          <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
+            <p className="text-xs text-gray-500 flex items-center gap-1.5 mb-1">
+              <i className="fa-solid fa-lock text-gray-400" />
+              This form generates a <strong>Capability Declaration</strong> JSON that is hashed with keccak256 and stored on-chain.
+              The hash proves this document has not been altered since registration.
+            </p>
+          </div>
+
+          {/* ── Actions ── */}
+          <div className="flex gap-3 pt-1">
             <button
               onClick={handleRegister}
-              disabled={step === 'loading' || !name.trim()}
-              className="btn-primary flex-1 py-2.5 flex items-center justify-center gap-2"
+              disabled={step === 'loading' || !name.trim() || !purpose.trim() || allowedActions.length === 0}
+              className="btn-primary flex-1 py-3 flex items-center justify-center gap-2 text-base"
             >
               {step === 'loading'
                 ? <><i className="fa-solid fa-spinner fa-spin" /> Registering on-chain…</>
@@ -226,7 +396,7 @@ function HeroRegister({ agent, onRegister }: {
             <button
               onClick={() => { setStep('idle'); setError('') }}
               disabled={step === 'loading'}
-              className="btn-ghost px-4 py-2.5"
+              className="btn-ghost px-5 py-3"
             >
               Cancel
             </button>
@@ -521,11 +691,15 @@ export default function Home() {
     return () => clearInterval(id)
   }, [fetchAgent, fetchHistory])
 
-  async function handleRegister(name: string, version: string) {
+  async function handleRegister(
+    name: string, version: string, purpose: string,
+    category: string, riskLevel: string,
+    allowedActionTypes: string[], organization: string,
+  ) {
     const res  = await fetch('/api/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, version }),
+      body: JSON.stringify({ name, version, purpose, category, riskLevel, allowedActionTypes, organization }),
     })
     const data = await res.json()
     if (!data.ok) throw new Error(data.error)
