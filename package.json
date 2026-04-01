@@ -1,0 +1,25 @@
+{
+  "name": "agentdid",
+  "version": "0.1.0",
+  "description": "Open protocol for decentralized AI agent & robot identity — built by the world, for the world.",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "node": "hardhat node",
+    "deploy": "hardhat run scripts/deploy.ts --network localhost",
+    "deploy:hardhat": "hardhat run scripts/deploy.ts",
+    "demo": "hardhat run scripts/demo.ts --network localhost"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "@types/node": "^20.0.0",
+    "hardhat": "^2.22.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.0"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.36.0",
+    "dotenv": "^16.4.0",
+    "ethers": "^6.13.0"
+  }
+}

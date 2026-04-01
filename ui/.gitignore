@@ -1,0 +1,14 @@
+# Next.js build output
+.next/
+out/
+
+# Dependencies
+node_modules/
+
+# Environment variables (contains API keys)
+.env
+.env.local
+.env*.local
+
+# Claude Code local settings
+.claude/
