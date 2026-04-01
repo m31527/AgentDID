@@ -170,13 +170,152 @@ The dashboard lets you register an agent, send Claude queries, and watch every a
 
 ## Deploy to a Real Network
 
-```bash
-# Sepolia testnet (get free ETH at sepoliafaucet.com)
-DEPLOYER_PRIVATE_KEY=0x... SEPOLIA_RPC_URL=https://... \
-  npx hardhat run scripts/deploy.ts --network sepolia
+This section walks you through deploying `AgentRegistry.sol` to the **Sepolia testnet** — a permanent public endpoint that anyone can use to register agents and verify actions. The same steps apply to any EVM-compatible mainnet.
 
-# Any EVM chain — edit hardhat.config.ts
+### Step 1 — Get a Sepolia RPC URL
+
+Sign up for a free account at [Alchemy](https://alchemy.com) or [Infura](https://infura.io), create a new app on **Ethereum Sepolia**, and copy the endpoint URL:
+
 ```
+https://eth-sepolia.g.alchemy.com/v2/YOUR_API_KEY
+```
+
+Alternatively, use a public RPC (no sign-up required):
+
+```
+https://rpc.sepolia.org
+https://ethereum-sepolia-rpc.publicnode.com
+```
+
+### Step 2 — Prepare a Deployer Wallet
+
+You need an Ethereum wallet private key with Sepolia ETH to pay for the deployment transaction. **Use a dedicated wallet — never your main wallet.**
+
+```bash
+# Export from MetaMask:
+# Account → ⋮ → Account Details → Export Private Key
+
+# Or generate a fresh one:
+node -e "const {ethers}=require('ethers'); const w=ethers.Wallet.createRandom(); console.log('Address:', w.address); console.log('Key:', w.privateKey)"
+```
+
+### Step 3 — Get Free Sepolia ETH
+
+Paste your wallet address into one of these faucets (~0.1 ETH is enough):
+
+| Faucet | Requirement |
+|---|---|
+| [Google Web3 Faucet](https://cloud.google.com/application/web3/faucet/ethereum/sepolia) | None — fastest |
+| [Alchemy Faucet](https://sepoliafaucet.com) | Alchemy account |
+| [QuickNode Faucet](https://faucet.quicknode.com/ethereum/sepolia) | None |
+
+### Step 4 — Configure Environment
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env` and fill in:
+
+```bash
+DEPLOYER_PRIVATE_KEY=0x<your_wallet_private_key>
+SEPOLIA_RPC_URL=https://eth-sepolia.g.alchemy.com/v2/<your_key>
+ETHERSCAN_API_KEY=<your_etherscan_api_key>   # optional, for contract verification
+```
+
+> **Never commit `.env` — it is already listed in `.gitignore`.**
+
+### Step 5 — Deploy
+
+```bash
+npx hardhat run scripts/deploy.ts --network sepolia
+```
+
+Expected output:
+
+```
+Deploying AgentRegistry...
+Deployer : 0xYourAddress
+Balance  : 0.5 ETH
+
+AgentRegistry deployed:
+  Address  : 0x05623871958D6d648953e64B1cdb562Adc28019B
+  Block    : 5432100
+  Network  : sepolia
+  Chain ID : 11155111
+
+Saved to deployment.json
+```
+
+The contract address is now stored in `deployment.json`. The Next.js dashboard and TypeScript SDK read this file automatically.
+
+### Step 6 — Verify on Etherscan (Recommended)
+
+Verification publishes the contract source code publicly so anyone can audit it and interact with it directly from the browser.
+
+**Get an Etherscan API key:** [etherscan.io](https://etherscan.io) → Sign up → *My Profile* → *API Keys* → *Add*
+
+Make sure `hardhat.config.ts` has the V2 format (already configured):
+
+```ts
+etherscan: {
+  apiKey: process.env.ETHERSCAN_API_KEY ?? "",
+},
+```
+
+Run verification:
+
+```bash
+npx hardhat verify --network sepolia 0x05623871958D6d648953e64B1cdb562Adc28019B
+```
+
+Once verified, the contract is publicly visible at:
+```
+https://sepolia.etherscan.io/address/0x05623871958D6d648953e64B1cdb562Adc28019B#code
+```
+
+Anyone can read the source code, call functions, and browse every `AgentRegistered`, `ActionLogged`, and `AnomalyFlagged` event — no API key, no wallet required.
+
+### Step 7 — Connect the Dashboard
+
+Update `ui/.env.local` with the deployed contract address:
+
+```bash
+NEXT_PUBLIC_REGISTRY_ADDRESS=0x05623871958D6d648953e64B1cdb562Adc28019B
+RPC_URL=https://eth-sepolia.g.alchemy.com/v2/<your_key>
+```
+
+Then start the UI:
+
+```bash
+cd ui && npm run dev
+# Open http://localhost:3333
+```
+
+### Deploying to Other Networks
+
+Edit `hardhat.config.ts` to add any EVM chain:
+
+```ts
+networks: {
+  polygon: {
+    url: process.env.POLYGON_RPC_URL ?? "https://polygon-rpc.com",
+    accounts: process.env.DEPLOYER_PRIVATE_KEY ? [process.env.DEPLOYER_PRIVATE_KEY] : [],
+  },
+  base: {
+    url: process.env.BASE_RPC_URL ?? "https://mainnet.base.org",
+    accounts: process.env.DEPLOYER_PRIVATE_KEY ? [process.env.DEPLOYER_PRIVATE_KEY] : [],
+  },
+}
+```
+
+Then deploy:
+
+```bash
+npx hardhat run scripts/deploy.ts --network polygon
+```
+
+> Gas costs: Ethereum Mainnet ~$2–10 · Polygon ~$0.01 · Base ~$0.01
 
 ---
 
