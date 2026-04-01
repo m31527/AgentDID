@@ -12,3 +12,7 @@ node_modules/
 
 # Claude Code local settings
 .claude/
+
+# Firebase
+.firebase/
+firebase-debug.log

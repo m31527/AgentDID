@@ -22,9 +22,27 @@ const config: HardhatUserConfig = {
         ? [process.env.DEPLOYER_PRIVATE_KEY]
         : [],
     },
+    polygon: {
+      url: process.env.POLYGON_RPC_URL ?? "https://polygon-rpc.com",
+      accounts: process.env.DEPLOYER_PRIVATE_KEY
+        ? [process.env.DEPLOYER_PRIVATE_KEY]
+        : [],
+    },
+    polygonAmoy: {
+      // Polygon testnet (replaces Mumbai)
+      url: process.env.POLYGON_AMOY_RPC_URL ?? "https://rpc-amoy.polygon.technology",
+      accounts: process.env.DEPLOYER_PRIVATE_KEY
+        ? [process.env.DEPLOYER_PRIVATE_KEY]
+        : [],
+    },
   },
   etherscan: {
-    apiKey: process.env.ETHERSCAN_API_KEY ?? "",
+    apiKey: {
+      mainnet:     process.env.ETHERSCAN_API_KEY ?? "",
+      sepolia:     process.env.ETHERSCAN_API_KEY ?? "",
+      polygon:     process.env.POLYGONSCAN_API_KEY ?? "",
+      polygonAmoy: process.env.POLYGONSCAN_API_KEY ?? "",
+    },
   },
   paths: {
     sources: "./contracts",
