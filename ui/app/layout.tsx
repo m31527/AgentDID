@@ -4,6 +4,15 @@ import './globals.css'
 export const metadata: Metadata = {
   title: 'AgentDID — Decentralized Identity for AI Agents',
   description: 'Open protocol for AI agent & robot identity. Non-commercial. Cross-border. Community governed.',
+  icons: {
+    icon: '/logo.png',
+    apple: '/logo.png',
+  },
+  openGraph: {
+    title: 'AgentDID — Decentralized Identity for AI Agents',
+    description: 'Non-commercial open protocol for AI agent & robot identity.',
+    images: ['/logo.png'],
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

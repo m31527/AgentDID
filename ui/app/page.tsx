@@ -722,9 +722,7 @@ export default function Home() {
       <nav className="border-b border-gray-100 px-6 py-4">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center">
-              <i className="fa-solid fa-robot text-white text-sm" />
-            </div>
+            <img src="/logo.png" alt="AgentDID" className="w-8 h-8 rounded-lg" />
             <span className="font-bold text-gray-900 text-lg">AgentDID</span>
             <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-100 font-medium">
               Testnet
