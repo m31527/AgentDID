@@ -11,6 +11,19 @@ interface AgentState {
   address: string; registryAddress: string
   registered: boolean; identity: AgentIdentity | null
 }
+interface GlobalStats {
+  totalAgents: number
+  totalActions: number
+  totalAnomalies: number
+  blockNumber: number
+}
+interface ExplorerAgent {
+  address: string; name: string; version: string
+  owner: string; registeredAt: string; active: boolean
+  actionCount: string; anomalyCount: string
+  riskLevel: string; category: string
+  capabilityHash: string; txHash: string; blockNumber: number
+}
 interface ActionRecord {
   agentAddress: string; actionIndex: string; actionType: string
   inputHash: string; outputHash: string; success: boolean
@@ -658,13 +671,240 @@ function HashVerifier() {
   )
 }
 
+// ── Global Stats Bar ─────────────────────────────────────────────────────
+function StatsBar({ stats }: { stats: GlobalStats | null }) {
+  const items = [
+    { icon: 'fa-robot',          label: 'Agents Registered', value: stats?.totalAgents   ?? '—', color: 'text-indigo-600' },
+    { icon: 'fa-link',           label: 'Actions On-Chain',  value: stats?.totalActions  ?? '—', color: 'text-green-600'  },
+    { icon: 'fa-triangle-exclamation', label: 'Anomalies Flagged', value: stats?.totalAnomalies ?? '—', color: 'text-orange-500' },
+    { icon: 'fa-cube',           label: 'Latest Block',      value: stats?.blockNumber ? `#${stats.blockNumber.toLocaleString()}` : '—', color: 'text-gray-500' },
+  ]
+  return (
+    <div className="border-y border-gray-100 bg-gray-50">
+      <div className="max-w-5xl mx-auto px-6 py-3 grid grid-cols-2 sm:grid-cols-4 gap-4">
+        {items.map(item => (
+          <div key={item.label} className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-white border border-gray-200 flex items-center justify-center shrink-0">
+              <i className={`fa-solid ${item.icon} text-xs ${item.color}`} />
+            </div>
+            <div>
+              <p className={`text-base font-bold leading-none ${item.color}`}>
+                {stats === null
+                  ? <span className="inline-block w-8 h-3 bg-gray-200 rounded animate-pulse" />
+                  : item.value}
+              </p>
+              <p className="text-xs text-gray-400 mt-0.5">{item.label}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ── Risk Badge ────────────────────────────────────────────────────────────
+const RISK_COLORS: Record<string, string> = {
+  LOW:      'bg-green-50  text-green-700  border-green-200',
+  MEDIUM:   'bg-yellow-50 text-yellow-700 border-yellow-200',
+  HIGH:     'bg-orange-50 text-orange-700 border-orange-200',
+  CRITICAL: 'bg-red-50    text-red-700    border-red-200',
+}
+const CATEGORY_ICONS: Record<string, string> = {
+  GENERAL: 'fa-robot', RESEARCH: 'fa-magnifying-glass', FINANCE: 'fa-chart-line',
+  MEDICAL: 'fa-heart-pulse', LEGAL: 'fa-scale-balanced',
+  INFRASTRUCTURE: 'fa-server', SOCIAL: 'fa-comments',
+}
+
+// ── Agent Explorer ────────────────────────────────────────────────────────
+function AgentExplorer({ agents, loading }: { agents: ExplorerAgent[]; loading: boolean }) {
+  const [selected, setSelected] = useState<ExplorerAgent | null>(null)
+  const [filter, setFilter]     = useState<'ALL' | 'ACTIVE' | 'ANOMALY'>('ALL')
+
+  const filtered = agents.filter(a => {
+    if (filter === 'ACTIVE') return a.active
+    if (filter === 'ANOMALY') return Number(a.anomalyCount) > 0
+    return true
+  })
+
+  return (
+    <section className="max-w-5xl mx-auto w-full px-6 pb-16">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+            <i className="fa-solid fa-earth-asia text-indigo-500" />
+            Agent Explorer
+          </h2>
+          <p className="text-sm text-gray-500 mt-1">
+            All registered agents on the AgentDID protocol — publicly auditable by anyone.
+          </p>
+        </div>
+        <div className="flex gap-2">
+          {(['ALL', 'ACTIVE', 'ANOMALY'] as const).map(f => (
+            <button key={f} onClick={() => setFilter(f)}
+              className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-colors ${
+                filter === f
+                  ? 'bg-indigo-600 text-white border-indigo-600'
+                  : 'border-gray-200 text-gray-500 hover:border-gray-300'
+              }`}>
+              {f === 'ANOMALY' ? '⚠ Anomaly' : f}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {loading && (
+        <div className="text-center py-12 text-gray-400">
+          <i className="fa-solid fa-spinner fa-spin mr-2" /> Scanning chain…
+        </div>
+      )}
+
+      {!loading && filtered.length === 0 && (
+        <div className="text-center py-12 text-gray-400 card">
+          <i className="fa-solid fa-inbox text-3xl text-gray-200 mb-3 block" />
+          No agents found.
+        </div>
+      )}
+
+      {/* Table */}
+      {filtered.length > 0 && (
+        <div className="card overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-100 bg-gray-50 text-xs text-gray-500 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left font-medium">Agent</th>
+                <th className="px-4 py-3 text-left font-medium">DID</th>
+                <th className="px-4 py-3 text-left font-medium">Category</th>
+                <th className="px-4 py-3 text-left font-medium">Risk</th>
+                <th className="px-4 py-3 text-right font-medium">Actions</th>
+                <th className="px-4 py-3 text-right font-medium">Anomalies</th>
+                <th className="px-4 py-3 text-right font-medium">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {filtered.map(agent => (
+                <tr key={agent.address}
+                  className="hover:bg-gray-50 cursor-pointer transition-colors"
+                  onClick={() => setSelected(selected?.address === agent.address ? null : agent)}
+                >
+                  <td className="px-4 py-3">
+                    <p className="font-semibold text-gray-900">{agent.name}</p>
+                    <p className="text-xs text-gray-400">v{agent.version}</p>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className="font-mono text-xs text-indigo-600">
+                      {agent.address.slice(0, 8)}…{agent.address.slice(-6)}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className="inline-flex items-center gap-1.5 text-xs text-gray-600">
+                      <i className={`fa-solid ${CATEGORY_ICONS[agent.category] ?? 'fa-robot'} text-gray-400`} />
+                      {agent.category}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className={`inline-block text-xs px-2 py-0.5 rounded-full border font-medium ${RISK_COLORS[agent.riskLevel] ?? ''}`}>
+                      {agent.riskLevel}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-right font-bold text-indigo-600">
+                    {agent.actionCount}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    {Number(agent.anomalyCount) > 0
+                      ? <span className="text-orange-500 font-bold">{agent.anomalyCount}</span>
+                      : <span className="text-gray-300">—</span>}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <span className={`inline-flex items-center gap-1 text-xs ${agent.active ? 'text-green-600' : 'text-gray-400'}`}>
+                      <i className={`fa-solid fa-circle text-xs`} />
+                      {agent.active ? 'Active' : 'Inactive'}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Detail panel */}
+      {selected && (
+        <div className="mt-4 card p-6 space-y-4 animate-[fadeIn_0.2s_ease]">
+          <div className="flex items-start justify-between">
+            <div>
+              <h3 className="text-lg font-bold text-gray-900">{selected.name}</h3>
+              <p className="text-sm font-mono text-indigo-500 mt-0.5">
+                did:agent:{selected.address}
+                <CopyButton text={`did:agent:${selected.address}`} />
+              </p>
+            </div>
+            <button onClick={() => setSelected(null)} className="text-gray-400 hover:text-gray-600">
+              <i className="fa-solid fa-xmark" />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 py-4 border-y border-gray-100">
+            <div className="text-center">
+              <p className="text-2xl font-bold text-indigo-600">{selected.actionCount}</p>
+              <p className="text-xs text-gray-400 mt-0.5">Actions logged</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-orange-500">{selected.anomalyCount}</p>
+              <p className="text-xs text-gray-400 mt-0.5">Anomalies flagged</p>
+            </div>
+            <div className="text-center">
+              <p className={`text-sm font-bold px-2 py-1 rounded-full border inline-block mt-1 ${RISK_COLORS[selected.riskLevel]}`}>
+                {selected.riskLevel}
+              </p>
+              <p className="text-xs text-gray-400 mt-0.5">Risk level</p>
+            </div>
+            <div className="text-center">
+              <p className="text-sm font-semibold text-gray-700 mt-1">{selected.category}</p>
+              <p className="text-xs text-gray-400 mt-0.5">Category</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            <div>
+              <p className="text-gray-400 mb-0.5">Owner</p>
+              <p className="font-mono text-gray-700">{selected.owner}<CopyButton text={selected.owner} /></p>
+            </div>
+            <div>
+              <p className="text-gray-400 mb-0.5">Registered</p>
+              <p className="text-gray-700">{new Date(Number(selected.registeredAt) * 1000).toLocaleString()}</p>
+            </div>
+            <div>
+              <p className="text-gray-400 mb-0.5">Capability Hash</p>
+              <p className="font-mono text-gray-500 break-all">{selected.capabilityHash}</p>
+            </div>
+            <div>
+              <p className="text-gray-400 mb-0.5">Registration TX</p>
+              <a
+                href={`https://sepolia.etherscan.io/tx/${selected.txHash}`}
+                target="_blank" rel="noopener noreferrer"
+                className="text-indigo-500 hover:underline font-mono"
+              >
+                {selected.txHash.slice(0, 10)}…{selected.txHash.slice(-8)}
+                <i className="fa-solid fa-arrow-up-right-from-square ml-1 text-xs" />
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+    </section>
+  )
+}
+
 // ── Main Page ──────────────────────────────────────────────────────────────
 export default function Home() {
-  const [agent,        setAgent]        = useState<AgentState | null>(null)
-  const [actions,      setActions]      = useState<ActionRecord[]>([])
-  const [queryLoading, setQueryLoading] = useState(false)
-  const [agentLoading, setAgentLoading] = useState(true)
-  const [connError,    setConnError]    = useState('')
+  const [agent,           setAgent]          = useState<AgentState | null>(null)
+  const [actions,         setActions]        = useState<ActionRecord[]>([])
+  const [stats,           setStats]          = useState<GlobalStats | null>(null)
+  const [explorerAgents,  setExplorerAgents] = useState<ExplorerAgent[]>([])
+  const [explorerLoading, setExplorerLoading] = useState(true)
+  const [queryLoading,    setQueryLoading]   = useState(false)
+  const [agentLoading,    setAgentLoading]   = useState(true)
+  const [connError,       setConnError]      = useState('')
 
   const fetchAgent = useCallback(async () => {
     try {
@@ -684,12 +924,38 @@ export default function Home() {
     } catch {}
   }, [])
 
+  const fetchStats = useCallback(async () => {
+    try {
+      const res  = await fetch('/api/stats')
+      const data = await res.json()
+      if (data.ok) setStats(data)
+    } catch {}
+  }, [])
+
+  const fetchExplorer = useCallback(async () => {
+    setExplorerLoading(true)
+    try {
+      const res  = await fetch('/api/explorer')
+      const data = await res.json()
+      if (data.ok) setExplorerAgents(data.agents)
+    } catch {}
+    finally { setExplorerLoading(false) }
+  }, [])
+
   useEffect(() => {
     fetchAgent()
     fetchHistory()
-    const id = setInterval(() => { fetchAgent(); fetchHistory() }, 5000)
-    return () => clearInterval(id)
-  }, [fetchAgent, fetchHistory])
+    fetchStats()
+    fetchExplorer()
+    const id = setInterval(() => {
+      fetchAgent()
+      fetchHistory()
+      fetchStats()
+    }, 5000)
+    // Explorer is slower (chain scan) — refresh every 30s
+    const expId = setInterval(fetchExplorer, 30000)
+    return () => { clearInterval(id); clearInterval(expId) }
+  }, [fetchAgent, fetchHistory, fetchStats, fetchExplorer])
 
   async function handleRegister(
     name: string, version: string, purpose: string,
@@ -741,6 +1007,9 @@ export default function Home() {
           </div>
         </div>
       </nav>
+
+      {/* ── Stats Bar ── */}
+      <StatsBar stats={stats} />
 
       {/* ── Connection Error ── */}
       {connError && !agentLoading && (
@@ -829,6 +1098,9 @@ export default function Home() {
           </div>
         </section>
       )}
+
+      {/* ── Agent Explorer ── */}
+      <AgentExplorer agents={explorerAgents} loading={explorerLoading} />
 
       {/* ── Footer ── */}
       <footer className="mt-auto border-t border-gray-100 px-6 py-5">
