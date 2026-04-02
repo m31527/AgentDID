@@ -7,7 +7,9 @@
       "**/node_modules/**"
     ],
     "frameworksBackend": {
-      "region": "asia-east1"
+      "region": "asia-east1",
+      "runtime": "nodejs20",
+      "secrets": ["AGENT_PRIVATE_KEY", "RPC_URL", "CONTRACT_ADDRESS"]
     }
   }
 }

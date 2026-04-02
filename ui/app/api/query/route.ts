@@ -19,9 +19,8 @@ export async function POST(req: NextRequest) {
     // ── Call Claude ──────────────────────────────────────────────────────
     const startMs = Date.now()
     const apiResponse = await anthropic.messages.create({
-      model:      'claude-opus-4-6',
+      model:      'claude-opus-4-5',
       max_tokens: 1024,
-      thinking:   { type: 'adaptive' },
       system: [
         `You are an AI agent with a verified blockchain identity.`,
         `Your Ethereum address: ${address}`,

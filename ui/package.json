@@ -2,6 +2,9 @@
   "name": "agentdid-ui",
   "version": "1.0.0",
   "private": true,
+  "engines": {
+    "node": "20"
+  },
   "scripts": {
     "dev": "next dev --port 3333",
     "build": "next build",

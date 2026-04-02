@@ -135,9 +135,12 @@ export function getProvider() {
 }
 
 export function getRegistryAddress(): string {
+  // 1. env var (Firebase / production)
+  if (process.env.CONTRACT_ADDRESS) return process.env.CONTRACT_ADDRESS
+  // 2. deployment.json (local dev)
   const dep = loadDeployment()
-  if (!dep) throw new Error('deployment.json not found — run: npm run deploy first')
-  return dep.address
+  if (dep) return dep.address
+  throw new Error('CONTRACT_ADDRESS not set and deployment.json not found')
 }
 
 export function getRegistry(signerOrProvider?: ethers.Signer | ethers.Provider) {
