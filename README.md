@@ -27,6 +27,20 @@
 
 ---
 
+## Protocol Goals
+
+AgentDID is designed to become the **open identity standard for AI agents and autonomous systems** — the way HTTPS is the standard for secure web communication, and Git is the standard for version control.
+
+| Goal | Description |
+|------|-------------|
+| **Universal Identity** | Every AI agent gets a `did:agent:<address>` — unique, permanent, and verifiable without any central authority |
+| **Declared Intent** | Agents publish a signed Capability Declaration before acting — what they can do, what they cannot, and at what risk level |
+| **Immutable Audit Trail** | Every action is hash-anchored on-chain — tamper-proof, censorship-resistant, permanently attributable |
+| **Anomaly Accountability** | Any party can flag misbehavior on-chain — creating a public, unforgeable record of agent misconduct |
+| **Open Standard** | Protocol-level, not product-level — designed for W3C DID 1.0 compliance and community governance, not vendor control |
+
+---
+
 ## The Problem We Must Solve — Together
 
 In the coming decade, **billions of AI agents and autonomous robots** will act on behalf of humans across every domain — making financial decisions, executing contracts, managing critical infrastructure, and operating across national borders without direct human supervision.
