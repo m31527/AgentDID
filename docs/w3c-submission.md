@@ -48,27 +48,32 @@ git clone https://github.com/m31527/did-spec-registries
 cd did-spec-registries
 ```
 
-### Step 3 — Add the entry
+### Step 3 — Create a new file `methods/agent.json`
 
-Open `did-methods/a.json` (entries are sorted alphabetically by method name).
+The registry uses **one JSON file per method** inside the `methods/` folder.
+Create a new file named exactly `agent.json`:
 
-Find the correct alphabetical position for `"agent"` and insert:
+```bash
+# Inside the cloned did-spec-registries repo:
+touch methods/agent.json
+```
+
+Paste this content into `methods/agent.json`:
 
 ```json
 {
   "name": "agent",
   "status": "provisional",
-  "verifiedBy": "W3C DID WG",
   "specification": "https://github.com/m31527/AgentDID/blob/main/docs/did-spec.md",
   "contact": "https://github.com/m31527/AgentDID/issues",
-  "notes": "Decentralized identity protocol for AI agents and autonomous systems. Extends W3C DID 1.0 with Capability Declaration, Action Logging, and Reputation Registry. Non-commercial, MIT licensed."
+  "notes": "Decentralized identity protocol for AI agents and autonomous systems. Extends W3C DID 1.0 with Capability Declaration (pre-declared agent intent), Action Logging (tamper-proof on-chain audit trail), and Reputation Registry (algorithmic trust score 0-100). Non-commercial, MIT licensed. Reference implementation deployed on Ethereum Sepolia testnet at 0x05623871958D6d648953e64B1cdb562Adc28019B. Live demo: https://agentdid.web.app"
 }
 ```
 
 ### Step 4 — Commit and push
 
 ```bash
-git add did-methods/a.json
+git add methods/agent.json
 git commit -m "Add did:agent method — decentralized AI agent identity"
 git push origin main
 ```
