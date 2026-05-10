@@ -16,6 +16,11 @@ export const metadata: Metadata = {
   },
 }
 
+const GA_ID       = process.env.NEXT_PUBLIC_GA_ID       ?? ''
+const FB_API_KEY  = process.env.NEXT_PUBLIC_FIREBASE_API_KEY  ?? ''
+const FB_APP_ID   = process.env.NEXT_PUBLIC_FIREBASE_APP_ID   ?? ''
+const FB_MSG_ID   = process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID ?? ''
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
@@ -28,37 +33,42 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-screen bg-white text-gray-900">{children}</body>
 
       {/* Google Analytics (GA4) */}
-      <Script
-        src="https://www.googletagmanager.com/gtag/js?id=G-3QCMJKFC29"
-        strategy="afterInteractive"
-      />
-      <Script id="google-analytics" strategy="afterInteractive">
-        {`
-          window.dataLayer = window.dataLayer || [];
-          function gtag(){dataLayer.push(arguments);}
-          gtag('js', new Date());
-          gtag('config', 'G-3QCMJKFC29');
-        `}
-      </Script>
+      {GA_ID && (
+        <>
+          <Script
+            src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
+            strategy="afterInteractive"
+          />
+          <Script id="google-analytics" strategy="afterInteractive">
+            {`
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', '${GA_ID}');
+            `}
+          </Script>
+        </>
+      )}
 
       {/* Firebase Analytics */}
-      <Script id="firebase-analytics" type="module" strategy="afterInteractive">
-        {`
-          import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js';
-          import { getAnalytics } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-analytics.js';
-          const firebaseConfig = {
-            apiKey: "AIzaSyAfVoZ9gp_iAEjijHXNLY1zCwL15sk8yuA",
-            authDomain: "agentdid.firebaseapp.com",
-            projectId: "agentdid",
-            storageBucket: "agentdid.firebasestorage.app",
-            messagingSenderId: "25091879565",
-            appId: "1:25091879565:web:1b340d0bff5580c94928c4",
-            measurementId: "G-3QCMJKFC29"
-          };
-          const app = initializeApp(firebaseConfig);
-          getAnalytics(app);
-        `}
-      </Script>
+      {FB_API_KEY && (
+        <Script id="firebase-analytics" type="module" strategy="afterInteractive">
+          {`
+            import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js';
+            import { getAnalytics } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-analytics.js';
+            const app = initializeApp({
+              apiKey:            '${FB_API_KEY}',
+              authDomain:        'agentdid.firebaseapp.com',
+              projectId:         'agentdid',
+              storageBucket:     'agentdid.firebasestorage.app',
+              messagingSenderId: '${FB_MSG_ID}',
+              appId:             '${FB_APP_ID}',
+              measurementId:     '${GA_ID}'
+            });
+            getAnalytics(app);
+          `}
+        </Script>
+      )}
     </html>
   )
 }

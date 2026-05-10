@@ -9,7 +9,9 @@
     "frameworksBackend": {
       "region": "asia-east1",
       "runtime": "nodejs20",
-      "secrets": ["AGENT_PRIVATE_KEY", "RPC_URL", "CONTRACT_ADDRESS"]
+      "secrets": ["AGENT_PRIVATE_KEY", "RPC_URL", "CONTRACT_ADDRESS",
+                  "NEXT_PUBLIC_GA_ID", "NEXT_PUBLIC_FIREBASE_API_KEY",
+                  "NEXT_PUBLIC_FIREBASE_APP_ID", "NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID"]
     }
   }
 }
