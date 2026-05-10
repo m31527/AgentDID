@@ -19,31 +19,28 @@ export async function GET() {
         const agentAddress = e.args['agentAddress'] as string
 
         try {
-          const id = await registry.getAgent(agentAddress)
-
-          // Count actions for this specific agent
-          const actionEvents = await registry.queryFilter(
-            registry.filters['ActionLogged'](agentAddress)
-          )
-          const anomalyEvents = await registry.queryFilter(
-            registry.filters['AnomalyFlagged'](agentAddress)
-          )
+          const [id, reputation] = await Promise.all([
+            registry.getAgent(agentAddress),
+            registry.getReputation(agentAddress).catch(() => 0n),
+          ])
 
           return {
-            address:      agentAddress,
-            name:         id.name,
-            version:      id.version,
-            owner:        id.owner,
-            registeredAt: id.registeredAt.toString(),
-            active:       id.active,
-            metadataURI:  id.metadataURI,
-            actionCount:  id.actionCount.toString(),
-            anomalyCount: id.anomalyCount.toString(),
-            riskLevel:    RISK_LABELS[Number(id.riskLevel)]   ?? 'LOW',
-            category:     CATEGORY_LABELS[Number(id.category)] ?? 'GENERAL',
+            address:        agentAddress,
+            name:           id.name,
+            version:        id.version,
+            owner:          id.owner,
+            registeredAt:   id.registeredAt.toString(),
+            active:         id.active,
+            metadataURI:    id.metadataURI,
+            actionCount:    id.actionCount.toString(),
+            successCount:   id.successCount.toString(),
+            anomalyCount:   id.anomalyCount.toString(),
+            riskLevel:      RISK_LABELS[Number(id.riskLevel)]    ?? 'LOW',
+            category:       CATEGORY_LABELS[Number(id.category)] ?? 'GENERAL',
             capabilityHash: id.capabilityHash,
-            txHash:       e.transactionHash,
-            blockNumber:  e.blockNumber,
+            reputation:     Number(reputation),
+            txHash:         e.transactionHash,
+            blockNumber:    e.blockNumber,
           }
         } catch {
           return null

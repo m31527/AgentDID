@@ -60,6 +60,7 @@ describe("AgentRegistry", function () {
       expect(id.owner).to.equal(owner.address);
       expect(id.active).to.be.true;
       expect(id.actionCount).to.equal(0n);
+      expect(id.successCount).to.equal(0n);
       expect(id.capabilityHash).to.equal(capHash);
       expect(id.riskLevel).to.equal(2);     // HIGH
       expect(id.category).to.equal(1);      // RESEARCH
@@ -119,13 +120,15 @@ describe("AgentRegistry", function () {
       ).to.emit(registry, "ActionLogged");
     });
 
-    it("increments actionCount", async function () {
+    it("increments actionCount and successCount", async function () {
       const { registry, agent } = await loadFixture(registeredFixture);
       const h = ethers.keccak256(ethers.toUtf8Bytes("x"));
-      await registry.connect(agent).logAction("test", h, h, true);
-      await registry.connect(agent).logAction("test", h, h, true);
+      await registry.connect(agent).logAction("test", h, h, true);   // success
+      await registry.connect(agent).logAction("test", h, h, false);  // fail
+      await registry.connect(agent).logAction("test", h, h, true);   // success
       const id = await registry.getAgent(agent.address);
-      expect(id.actionCount).to.equal(2n);
+      expect(id.actionCount).to.equal(3n);
+      expect(id.successCount).to.equal(2n);
     });
 
     it("reverts for unregistered address", async function () {
@@ -228,6 +231,57 @@ describe("AgentRegistry", function () {
       await expect(
         registry.connect(agent).logAction("test", h, h, true),
       ).to.be.revertedWith("AgentRegistry: agent not active");
+    });
+  });
+
+  // ── Reputation ────────────────────────────────────────────────────────
+  describe("getReputation", function () {
+    async function registeredFixture() {
+      const base = await loadFixture(deployFixture);
+      await register(base.registry, base.owner, base.agent);
+      return base;
+    }
+
+    it("new agent starts at 80", async function () {
+      const { registry, agent } = await loadFixture(registeredFixture);
+      expect(await registry.getReputation(agent.address)).to.equal(80n);
+    });
+
+    it("all successful actions push score to 100", async function () {
+      const { registry, agent } = await loadFixture(registeredFixture);
+      const h = ethers.keccak256(ethers.toUtf8Bytes("x"));
+      // 10 successful actions → actionBonus = (10/10)*20 = 20
+      for (let i = 0; i < 10; i++) {
+        await registry.connect(agent).logAction("test", h, h, true);
+      }
+      expect(await registry.getReputation(agent.address)).to.equal(100n);
+    });
+
+    it("each anomaly deducts 10 points", async function () {
+      const { registry, agent, stranger } = await loadFixture(registeredFixture);
+      await registry.connect(stranger).flagAnomaly(agent.address, "Bad", 5);
+      await registry.connect(stranger).flagAnomaly(agent.address, "Worse", 8);
+      // 80 - 20 = 60
+      expect(await registry.getReputation(agent.address)).to.equal(60n);
+    });
+
+    it("score floors at 0 with many anomalies", async function () {
+      const { registry, agent, stranger } = await loadFixture(registeredFixture);
+      for (let i = 0; i < 10; i++) {
+        await registry.connect(stranger).flagAnomaly(agent.address, "Report", 5);
+      }
+      expect(await registry.getReputation(agent.address)).to.equal(0n);
+    });
+
+    it("returns 0 for unregistered address", async function () {
+      const { registry, stranger } = await loadFixture(deployFixture);
+      expect(await registry.getReputation(stranger.address)).to.equal(0n);
+    });
+
+    it("returns 0 for deactivated agent", async function () {
+      const { registry, owner, agent } = await loadFixture(registeredFixture);
+      await registry.connect(owner).deactivateAgent(agent.address);
+      expect(await registry.getReputation(agent.address)).to.equal(0n);
     });
   });
 });

@@ -400,7 +400,8 @@ We are preparing to submit `did:agent` to the [W3C DID Methods Registry](https:/
 | Version | Goal | Status |
 |---|---|---|
 | **v0.1** | `AgentRegistry.sol` — single-chain identity + action log | ✅ Alpha |
-| **v0.2** | W3C DID Document resolver + `did:agent` spec submission | 🔨 In progress |
+| **v0.2** | Capability Declaration + Reputation Registry + W3C DID spec upgrade | ✅ Complete |
+| **v0.2.1** | W3C DID Methods Registry submission | 🔨 In progress — [submission guide](docs/w3c-submission.md) |
 | **v0.3** | Multi-chain support (Polygon, Base, Arbitrum, BNB Chain) | 📋 Planned |
 | **v0.4** | Verifiable Credentials — agents issue and verify attestations | 📋 Planned |
 | **v0.5** | Trust delegation — Agent A authorizes Agent B to act on its behalf | 📋 Planned |
@@ -411,13 +412,16 @@ We are preparing to submit `did:agent` to the [W3C DID Methods Registry](https:/
 
 ## Why Not Just Use Existing Solutions?
 
-| Solution | Problem |
-|---|---|
-| Microsoft Entra Agent ID | Centralized, commercial, Microsoft-controlled |
-| Polygon ID / WorldID | Designed for human identity, not agent accountability |
-| Veramo | Developer framework, not a protocol standard |
-| ENS / Unstoppable Domains | Naming, not agent action accountability |
-| **AgentDID** | Purpose-built, open, non-commercial, action-auditable ✓ |
+| Solution | Type | Problem |
+|---|---|---|
+| **ERC-8004** | Ethereum proposal | NFT-based identity only — no Capability Declaration, no Action Logging, no Reputation formula; still a draft EIP with no working implementation |
+| **Visa TAP** | Commercial product | Payment-specific; centralized issuer (Visa); not open source; not general-purpose for AI agents |
+| **Trulioo DAP** | Commercial product | SSL-CA model with human KYB/KYC gate; per-transaction refresh; not open protocol |
+| **Microsoft Entra Agent ID** | Commercial product | Centralized, Microsoft-controlled; enterprise-only |
+| **Polygon ID / WorldID** | Human-focused | Designed for human identity, not agent behavioral accountability |
+| **Veramo** | Developer framework | Not a protocol standard; no action logging or reputation |
+| **ENS / Unstoppable Domains** | Naming system | Naming only, not agent action accountability |
+| **AgentDID** | Open protocol | Purpose-built for AI agents: identity + capability declaration + action log + on-chain reputation ✓ Non-commercial, MIT licensed, working implementation live |
 
 ---
 

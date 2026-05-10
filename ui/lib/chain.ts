@@ -57,6 +57,7 @@ const FULL_ABI = [
         { name: 'riskLevel',      type: 'uint8'   },
         { name: 'category',       type: 'uint8'   },
         { name: 'anomalyCount',   type: 'uint256' },
+        { name: 'successCount',   type: 'uint256' },
       ],
     }],
   },
@@ -105,6 +106,11 @@ const FULL_ABI = [
       { name: 'severity',     type: 'uint8',   indexed: false },
       { name: 'timestamp',    type: 'uint256', indexed: false },
     ],
+  },
+  {
+    name: 'getReputation', type: 'function', stateMutability: 'view',
+    inputs: [{ name: 'agentAddress', type: 'address' }],
+    outputs: [{ name: 'score', type: 'uint256' }],
   },
   {
     name: 'AgentDeactivated', type: 'event',

@@ -3,7 +3,7 @@ pragma solidity ^0.8.24;
 
 /**
  * @title AgentDID — AgentRegistry
- * @author AgentDID Contributors (https://github.com/agentdid)
+ * @author AgentDID Contributors (https://github.com/m31527/AgentDID)
  * @notice Core registry for the AgentDID open protocol.
  *
  * AgentDID is a non-commercial, open-source protocol for decentralized
@@ -11,7 +11,8 @@ pragma solidity ^0.8.24;
  * any single corporation or nation-state.
  *
  * DID method: did:agent:<address>
- * Spec:       https://github.com/agentdid/spec
+ * Spec:       https://github.com/m31527/AgentDID/blob/main/docs/did-spec.md
+ * Demo:       https://agentdid.web.app
  *
  * Each AI agent is assigned an Ethereum address as its cryptographic
  * identity (its "passport"). The owner registers agents with a full
@@ -20,6 +21,11 @@ pragma solidity ^0.8.24;
  *
  * Anyone may call flagAnomaly() to report behavior that deviates from
  * the agent's declared capabilities — enabling decentralized oversight.
+ *
+ * Reputation is computed on-chain via getReputation():
+ *   - New agents start at 80 / 100
+ *   - Successful actions push toward 100
+ *   - Each anomaly report deducts 10 points (floor: 0)
  *
  * @dev Non-upgradeable by design — immutability is a feature, not a bug.
  */
@@ -52,6 +58,7 @@ contract AgentRegistry {
         RiskLevel riskLevel;      // Declared risk level
         AgentCategory category;   // Agent function category
         uint256 anomalyCount;     // Total anomaly reports received
+        uint256 successCount;     // Total successful actions (used for reputation)
     }
 
     // ============ State ============
@@ -156,7 +163,8 @@ contract AgentRegistry {
             capabilityHash: capabilityHash,
             riskLevel: riskLevel,
             category: category,
-            anomalyCount: 0
+            anomalyCount: 0,
+            successCount: 0
         });
 
         isRegistered[agentAddress] = true;
@@ -179,6 +187,7 @@ contract AgentRegistry {
     /**
      * @dev Called BY the agent to log an action on-chain.
      *      Must be called from the agent's registered address.
+     *      Increments successCount when success == true (used for reputation).
      *
      * @param actionType  Category string (e.g. "llm_query", "tool_use", "web_search")
      * @param inputHash   keccak256 hash of the action's input data
@@ -194,6 +203,7 @@ contract AgentRegistry {
         AgentIdentity storage agent = agents[msg.sender];
         uint256 actionIndex = agent.actionCount;
         agent.actionCount++;
+        if (success) agent.successCount++;
 
         emit ActionLogged(
             msg.sender,
@@ -235,6 +245,54 @@ contract AgentRegistry {
             severity,
             block.timestamp
         );
+    }
+
+    // ============ Reputation ============
+
+    /**
+     * @dev Compute an agent's on-chain reputation score (0–100).
+     *
+     * Formula:
+     *   base        = 80
+     *   actionBonus = (successCount / actionCount) * 20   [0–20, requires ≥1 action]
+     *   penalty     = anomalyCount * 10
+     *   score       = clamp(base + actionBonus - penalty, 0, 100)
+     *
+     * Interpretation:
+     *   80–100  Trusted — strong track record, no anomalies
+     *   60–79   Good    — some anomalies or limited history
+     *   40–59   Caution — multiple anomaly reports
+     *   0–39    Flagged — significant community concern
+     *
+     * Inactive agents always return 0.
+     *
+     * @param agentAddress  The agent to evaluate
+     * @return score        Reputation score 0–100
+     */
+    function getReputation(address agentAddress)
+        external
+        view
+        returns (uint256 score)
+    {
+        if (!isRegistered[agentAddress]) return 0;
+        AgentIdentity storage agent = agents[agentAddress];
+        if (!agent.active) return 0;
+
+        uint256 base = 80;
+
+        // Action bonus: up to +20 based on success rate
+        uint256 actionBonus = 0;
+        if (agent.actionCount > 0) {
+            actionBonus = (agent.successCount * 20) / agent.actionCount;
+        }
+
+        // Anomaly penalty: -10 per report
+        uint256 penalty = agent.anomalyCount * 10;
+
+        uint256 raw = base + actionBonus;
+        if (penalty >= raw) return 0;
+        score = raw - penalty;
+        if (score > 100) score = 100;
     }
 
     // ============ View Functions ============

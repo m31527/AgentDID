@@ -1,9 +1,12 @@
 # did:agent Method Specification
 
-**Status:** Draft v0.1
+**Status:** Draft v0.2
 **Authors:** AgentDID Contributors
-**Repository:** https://github.com/agentdid/agentdid
-**W3C DID Methods Registry:** Pending submission
+**Repository:** https://github.com/m31527/AgentDID
+**Live Demo:** https://agentdid.web.app
+**Deployed Contract (Sepolia):** `0x05623871958D6d648953e64B1cdb562Adc28019B`
+**W3C DID Methods Registry:** Pending submission ([submission guide](w3c-submission.md))
+**License:** [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)
 
 ---
 
@@ -11,7 +14,13 @@
 
 The `did:agent` DID method defines a decentralized identifier scheme for AI agents and autonomous robots. It anchors each agent's identity to a cryptographic Ethereum address recorded on an EVM-compatible public blockchain, enabling any party to resolve, verify, and audit an agent's identity and action history without requiring permission from any centralized authority.
 
-This document conforms to the [W3C Decentralized Identifiers (DID) 1.0](https://www.w3.org/TR/did-1.0/) specification.
+This document conforms to the [W3C Decentralized Identifiers (DID) 1.0](https://www.w3.org/TR/did-1.0/) specification and the [DID Method Rubric v1.0](https://www.w3.org/TR/did-rubric/).
+
+The `did:agent` method extends the W3C DID framework with three protocol-level primitives not defined in any existing DID method:
+
+1. **Capability Declaration** — a signed, hash-anchored document declaring what an agent is and is not permitted to do
+2. **Action Logging** — an append-only, tamper-proof on-chain record of every significant action an agent performs
+3. **Reputation Registry** — an on-chain, algorithmically computed trust score derived from action history and community anomaly reports
 
 ---
 
@@ -21,15 +30,13 @@ This document conforms to the [W3C Decentralized Identifiers (DID) 1.0](https://
 2. [DID Method Syntax](#2-did-method-syntax)
 3. [DID Document](#3-did-document)
 4. [CRUD Operations](#4-crud-operations)
-   - 4.1 [Create (Register)](#41-create-register)
-   - 4.2 [Read (Resolve)](#42-read-resolve)
-   - 4.3 [Update](#43-update)
-   - 4.4 [Deactivate](#44-deactivate)
-5. [Security Considerations](#5-security-considerations)
-6. [Privacy Considerations](#6-privacy-considerations)
-7. [Action Logging Extension](#7-action-logging-extension)
-8. [Reference Implementation](#8-reference-implementation)
-9. [Conformance](#9-conformance)
+5. [Capability Declaration](#5-capability-declaration)
+6. [Action Logging Extension](#6-action-logging-extension)
+7. [Reputation Registry](#7-reputation-registry)
+8. [Security Considerations](#8-security-considerations)
+9. [Privacy Considerations](#9-privacy-considerations)
+10. [Reference Implementation](#10-reference-implementation)
+11. [Conformance](#11-conformance)
 
 ---
 
@@ -43,8 +50,9 @@ The rapid proliferation of AI agents and autonomous systems creates an urgent ne
 - **Non-commercial governance** free from single-party control
 - **Cross-jurisdictional operation** without regulatory capture
 - **Cryptographic verifiability** of every claimed action
+- **Pre-declared intent** — knowing what an agent is authorized to do *before* it acts
 
-The `did:agent` method addresses these gaps by combining the W3C DID standard with EVM smart contract infrastructure and an action-logging protocol extension.
+The `did:agent` method addresses these gaps by combining the W3C DID standard with EVM smart contract infrastructure, a capability declaration protocol, action-logging, and on-chain reputation.
 
 ### 1.2 Design Goals
 
@@ -53,6 +61,8 @@ The `did:agent` method addresses these gaps by combining the W3C DID standard wi
 | Decentralization | Ethereum address as identity anchor; no central registry |
 | Immutability | Non-upgradeable `AgentRegistry.sol` |
 | Auditability | On-chain `ActionLogged` events with keccak256 proof |
+| Pre-declared intent | Capability Declaration hash anchored at registration |
+| On-chain reputation | `getReputation()` — computed from action history + anomaly reports |
 | Gas efficiency | Hashes only; raw data stored off-chain |
 | Interoperability | W3C DID 1.0 compliant; EVM-compatible |
 | Non-commerciality | MIT license; no token; no VC funding |
@@ -63,9 +73,11 @@ The `did:agent` method addresses these gaps by combining the W3C DID standard wi
 |---|---|
 | **Agent** | An AI system, autonomous robot, or software process that acts on behalf of principals |
 | **Owner** | The human or organization that registers and controls an agent |
+| **Capability Declaration** | A signed JSON document declaring the agent's permitted actions, risk level, and category |
 | **Passport** | The combination of a `did:agent` identifier and its on-chain DID Document |
 | **Action** | Any discrete operation performed by an agent (query, tool use, transaction, etc.) |
 | **Action Log** | The immutable sequence of `ActionLogged` events on-chain for a given agent |
+| **Reputation Score** | An integer 0–100 computed on-chain from action success rate and anomaly count |
 
 ---
 
@@ -142,7 +154,7 @@ A `did:agent` DID Document is produced by reading from the `AgentRegistry` smart
     {
       "id": "did:agent:0x4d0692B74E9534FeA2D8E7ff367A5bb6A9378B31#registry",
       "type": "AgentDIDRegistry",
-      "serviceEndpoint": "0x5FbDB2315678afecb367f032d93F642f64180aa3"
+      "serviceEndpoint": "0x05623871958D6d648953e64B1cdb562Adc28019B"
     },
     {
       "id": "did:agent:0x4d0692B74E9534FeA2D8E7ff367A5bb6A9378B31#metadata",
@@ -156,28 +168,20 @@ A `did:agent` DID Document is produced by reading from the `AgentRegistry` smart
     "owner": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
     "registeredAt": 1710000000,
     "active": true,
-    "actionCount": 42
+    "actionCount": 42,
+    "successCount": 40,
+    "anomalyCount": 0,
+    "reputation": 100,
+    "riskLevel": "LOW",
+    "category": "RESEARCH",
+    "capabilityHash": "0xabc123..."
   }
 }
 ```
 
-### 3.2 DID Document Properties
+### 3.2 AgentDID Extension (`agentDID`)
 
-#### Standard Properties
-
-| Property | Value |
-|---|---|
-| `@context` | W3C DID v1, secp256k1-2020, agentdid context |
-| `id` | The `did:agent` identifier |
-| `controller` | Same as `id` (self-sovereign) |
-| `verificationMethod` | Single secp256k1 key derived from the agent address |
-| `authentication` | References `#key-1` |
-| `assertionMethod` | References `#key-1` |
-| `service` | Registry contract address + optional metadata URI |
-
-#### AgentDID Extension (`agentDID`)
-
-The `agentDID` property is a non-standard extension carrying agent-specific metadata from the registry contract:
+The `agentDID` property is a non-standard extension carrying agent-specific metadata:
 
 | Field | Type | Description |
 |---|---|---|
@@ -187,6 +191,12 @@ The `agentDID` property is a non-standard extension carrying agent-specific meta
 | `registeredAt` | integer | Unix timestamp of registration |
 | `active` | boolean | Whether the agent is currently active |
 | `actionCount` | integer | Total actions logged on-chain |
+| `successCount` | integer | Total successful actions |
+| `anomalyCount` | integer | Total anomaly reports received |
+| `reputation` | integer | On-chain reputation score (0–100) |
+| `riskLevel` | string | Declared risk: LOW / MEDIUM / HIGH / CRITICAL |
+| `category` | string | Agent category |
+| `capabilityHash` | bytes32 | keccak256 of the Capability Declaration JSON |
 
 ---
 
@@ -199,189 +209,118 @@ An agent identity is created by calling `registerAgent()` on the `AgentRegistry`
 **Contract call:**
 ```solidity
 function registerAgent(
-    address agentAddress,    // The agent's Ethereum address
-    string calldata name,    // Human-readable name
-    string calldata version, // Semantic version
-    string calldata metadataURI // Optional IPFS/HTTPS URI
+    address agentAddress,
+    string calldata name,
+    string calldata version,
+    string calldata metadataURI,
+    bytes32 capabilityHash,
+    RiskLevel riskLevel,
+    AgentCategory category
 ) external
 ```
 
-**Requirements:**
-- `agentAddress` MUST be a non-zero Ethereum address
-- `agentAddress` MUST NOT already be registered
-- `name` MUST be non-empty
-- The transaction MUST be signed by the owner's wallet
-
 **On success:**
-- Emits `AgentRegistered(agentAddress, name, version, owner, timestamp, metadataURI)`
+- Emits `AgentRegistered` event with all identity fields
 - Sets `isRegistered[agentAddress] = true`
-- Creates `AgentIdentity` struct in storage
-
-**TypeScript example:**
-```typescript
-const passport = await AgentPassport.create(config);
-await passport.register("ResearchBot-v1", "1.0.0", "ipfs://Qm...");
-// Agent DID: did:agent:0x...
-```
+- Initializes `reputation = 80` (computed dynamically)
 
 ### 4.2 Read (Resolve)
 
-Resolution queries the `AgentRegistry` contract and constructs a DID Document.
-
-**Contract call:**
-```solidity
-function getAgent(address agentAddress)
-    external view
-    returns (AgentIdentity memory)
-```
-
 **Resolution algorithm:**
 1. Parse `agentAddress` from the DID string
-2. Verify `isRegistered[agentAddress] == true`; if false, return `notFound` error
+2. Verify `isRegistered[agentAddress] == true`; if false, return `notFound`
 3. Call `getAgent(agentAddress)` to retrieve `AgentIdentity`
-4. Query `ActionLogged` events to retrieve `actionCount` (or use `AgentIdentity.actionCount`)
+4. Call `getReputation(agentAddress)` to retrieve current score
 5. Construct DID Document as described in §3.1
-6. Return DID Document with `deactivated: true` if `AgentIdentity.active == false`
-
-**DID Resolution Metadata:**
-```json
-{
-  "contentType": "application/did+ld+json",
-  "retrieved": "2024-03-01T12:00:00Z"
-}
-```
+6. Set `"deactivated": true` in metadata if `AgentIdentity.active == false`
 
 ### 4.3 Update
 
-The `did:agent` method supports limited updates:
+The core identity (address, owner, registration timestamp) is immutable by design.
 
-#### Update Metadata URI (Planned)
-
-A future version will allow the owner to update the `metadataURI` field pointing to off-chain metadata. The core identity (address, owner, registration timestamp) is immutable by design.
-
-#### Key Rotation (Planned v0.5)
-
-Trust delegation (planned for v0.5) will allow an agent to authorize a new address, effectively enabling key rotation while preserving audit history continuity.
-
-**Current behavior:** The agent address (and therefore the DID) is permanent once registered. There is no `update` function in v0.1.
+A future version will allow the owner to update `metadataURI`. Key rotation via trust delegation is planned for v0.5.
 
 ### 4.4 Deactivate
 
-An agent is deactivated by calling `deactivateAgent()`.
-
-**Contract call:**
 ```solidity
 function deactivateAgent(address agentAddress) external
 ```
 
-**Authorization:** Only the agent itself (`msg.sender == agentAddress`) or the owner (`msg.sender == agent.owner`) may deactivate.
-
-**Effect:**
-- Sets `AgentIdentity.active = false`
-- Emits `AgentDeactivated(agentAddress, timestamp)`
-- Deactivated agents cannot call `logAction()`
-- DID Document resolver SHOULD include `"deactivated": true` in DID Document Metadata
-
-**This operation is irreversible.** Immutability is a core protocol guarantee — an agent cannot be re-activated once deactivated. This is intentional: it prevents an agent from resuming activity after a security incident.
+**Authorization:** Only the agent itself or its owner may deactivate.
+**Effect:** Sets `active = false`. Irreversible. Deactivated agents return `reputation = 0`.
 
 ---
 
-## 5. Security Considerations
+## 5. Capability Declaration
 
-### 5.1 Private Key Compromise
+The Capability Declaration is a signed JSON document committed at registration. Its `keccak256` hash is stored on-chain as `capabilityHash`, binding the agent's declared intent to its identity permanently.
 
-The agent's Ethereum private key is the root of its identity. If compromised:
+### 5.1 Schema (`agentdid-capability/v1`)
 
-1. The owner SHOULD immediately call `deactivateAgent()` to halt further action logging
-2. The immutable action history up to deactivation remains valid and auditable
-3. A new agent address must be registered; continuity of identity is not preserved in v0.1
+```json
+{
+  "schema": "agentdid-capability/v1",
+  "identity": {
+    "name": "ResearchBot-v1",
+    "version": "1.0.0",
+    "purpose": "Academic literature search and summarization",
+    "category": 1
+  },
+  "capabilities": {
+    "allowedActionTypes": ["llm_query", "web_search", "file_read"],
+    "forbiddenActionTypes": ["financial_transaction", "file_write"],
+    "canAccessPII": false,
+    "canWriteFiles": false,
+    "canSpawnSubAgents": false
+  },
+  "riskProfile": {
+    "level": 0,
+    "dataClassification": "PUBLIC",
+    "financialLimit": 0
+  }
+}
+```
 
-**Mitigation (planned):** Trust delegation (v0.5) and hardware security module (HSM) integration guides.
+### 5.2 Hash Construction
 
-### 5.2 Owner Key Compromise
+```typescript
+const capabilityHash = ethers.keccak256(
+  ethers.toUtf8Bytes(JSON.stringify(capabilityDoc, null, 2))
+)
+```
 
-The owner wallet controls registration and deactivation. Owner key compromise could allow:
-- Unauthorized deactivation of legitimate agents
-- Cannot modify past action logs (immutable events)
+### 5.3 Verification
 
-**Mitigation:** Use hardware wallets for owner keys. Multi-sig owner support is planned.
+Anyone holding the original Capability Declaration JSON can verify it against the on-chain hash:
 
-### 5.3 Replay Attacks
-
-All state-changing contract calls require signed Ethereum transactions with nonce and chain ID. EVM replay protection prevents transaction replay across sessions or chains.
-
-### 5.4 Front-Running
-
-Registration transactions are visible in the mempool before mining. An attacker could theoretically front-run a registration attempt to claim an address. However:
-- The agent address is a public key derived from a private key the attacker cannot know
-- Front-running a random address provides no advantage to the attacker
-
-### 5.5 Smart Contract Security
-
-`AgentRegistry.sol` is non-upgradeable by design. Security properties:
-- No admin keys or owner privileges at the contract level
-- No `SELFDESTRUCT`, no proxy patterns, no delegatecall
-- All state transitions are append-only (registration + action log)
-- Deactivation is the only "destructive" operation, and it cannot be reversed
-
-**Formal verification and independent security audits are planned before mainnet deployment.**
-
-### 5.6 Hash Collision Resistance
-
-Action integrity is based on `keccak256`. Keccak-256 provides 256-bit collision resistance. No practical preimage or collision attacks are known. This is the same hash function used to derive Ethereum addresses and in the EVM itself.
-
----
-
-## 6. Privacy Considerations
-
-### 6.1 Public Ledger Visibility
-
-All `did:agent` identifiers, registration events, and action logs are stored on a public blockchain. They are visible to anyone with access to an Ethereum node.
-
-**Operators MUST NOT store personally identifiable information (PII) in:**
-- Agent names
-- Metadata URIs that resolve to PII
-- Action type strings
-
-### 6.2 Hash-Only Action Storage
-
-Raw action input/output data is NOT stored on-chain. Only `keccak256(rawData)` is stored. This provides:
-- **Confidentiality**: Off-chain data remains private unless disclosed by the operator
-- **Verifiability**: Anyone holding the raw data can verify it matches the on-chain hash
-- **Minimization**: No personal data or prompt content touches the blockchain
-
-### 6.3 Metadata URI Privacy
-
-The `metadataURI` field is optional and public. If used, it SHOULD NOT resolve to documents containing PII. IPFS content-addressed URIs are preferred over mutable HTTPS endpoints.
-
-### 6.4 Selective Disclosure (Planned)
-
-ZK-proof action logs (planned for v0.6) will allow an agent to prove it performed a category of action (e.g., "queried a medical database") without revealing the query content, enabling privacy-preserving compliance.
+```typescript
+const onChainHash = (await registry.getAgent(agentAddress)).capabilityHash
+const localHash   = ethers.keccak256(ethers.toUtf8Bytes(JSON.stringify(doc, null, 2)))
+assert(onChainHash === localHash)  // proves the declaration was not modified
+```
 
 ---
 
-## 7. Action Logging Extension
+## 6. Action Logging Extension
 
-The `did:agent` method extends the W3C DID framework with an **action logging protocol** unique to autonomous agent identity.
-
-### 7.1 Rationale
+### 6.1 Rationale
 
 Standard DIDs record identity but not behavior. For AI agents, accountability requires evidence of what an agent *did*, not just who it *is*. The action log provides a tamper-proof, chronologically ordered, publicly auditable record of every significant operation.
 
-### 7.2 `logAction` Interface
+### 6.2 `logAction` Interface
 
 ```solidity
 function logAction(
-    string calldata actionType,  // Category (see §7.3)
-    bytes32 inputHash,           // keccak256(abi.encodePacked(rawInput))
-    bytes32 outputHash,          // keccak256(abi.encodePacked(rawOutput))
-    bool success                 // Whether the action completed successfully
+    string calldata actionType,
+    bytes32 inputHash,
+    bytes32 outputHash,
+    bool success
 ) external onlyRegistered onlyActive
 ```
 
-### 7.3 Standard Action Types
+Successful actions (`success = true`) increment `successCount`, which feeds into the Reputation score.
 
-The following action type strings are defined by this specification. Implementations SHOULD use these values; custom types MUST use a reverse-domain prefix (e.g., `com.example.custom_action`).
+### 6.3 Standard Action Types
 
 | Action Type | Description |
 |---|---|
@@ -396,62 +335,142 @@ The following action type strings are defined by this specification. Implementat
 | `human_interaction` | Interaction with a human user |
 | `contract_call` | Smart contract invocation |
 
-### 7.4 Hash Construction
+Custom types MUST use a reverse-domain prefix: `com.example.custom_action`.
+
+### 6.4 Hash Construction
 
 ```typescript
-// TypeScript reference implementation
-import { ethers } from "ethers";
-
-const inputHash  = ethers.keccak256(ethers.toUtf8Bytes(rawInput));
-const outputHash = ethers.keccak256(ethers.toUtf8Bytes(rawOutput));
+const inputHash  = ethers.keccak256(ethers.toUtf8Bytes(rawInput))
+const outputHash = ethers.keccak256(ethers.toUtf8Bytes(rawOutput))
 ```
 
-For binary data:
-```typescript
-const inputHash = ethers.keccak256(binaryBuffer);
-```
-
-### 7.5 ActionLogged Event Schema
-
-```solidity
-event ActionLogged(
-    address indexed agentAddress,  // The agent that performed the action
-    uint256 indexed actionIndex,   // Sequential index (0-based)
-    string actionType,             // From §7.3
-    bytes32 inputHash,             // Hash of input
-    bytes32 outputHash,            // Hash of output
-    bool success,                  // Outcome
-    uint256 timestamp              // block.timestamp
-);
-```
-
-### 7.6 Verification Protocol
-
-To verify that an on-chain action record corresponds to known data:
+### 6.5 Verification Protocol
 
 ```typescript
 function verifyAction(record: ActionRecord, rawInput: string, rawOutput: string): boolean {
-  const inputHash  = ethers.keccak256(ethers.toUtf8Bytes(rawInput));
-  const outputHash = ethers.keccak256(ethers.toUtf8Bytes(rawOutput));
-  return inputHash === record.inputHash && outputHash === record.outputHash;
+  return (
+    ethers.keccak256(ethers.toUtf8Bytes(rawInput))  === record.inputHash &&
+    ethers.keccak256(ethers.toUtf8Bytes(rawOutput)) === record.outputHash
+  )
 }
 ```
 
-A mismatch indicates either:
-1. The wrong raw data was provided (not the original), or
-2. The raw data has been tampered with since the action was logged
+---
+
+## 7. Reputation Registry
+
+### 7.1 Rationale
+
+A static identity is insufficient for trust decisions. The `did:agent` method includes an on-chain, manipulation-resistant reputation score that reflects an agent's behavioral track record.
+
+### 7.2 `getReputation` Interface
+
+```solidity
+function getReputation(address agentAddress)
+    external view returns (uint256 score)
+```
+
+Returns an integer from 0 to 100. No off-chain oracle or subjective input is required.
+
+### 7.3 Scoring Formula
+
+```
+base        = 80
+actionBonus = (successCount / actionCount) * 20    [0–20; 0 if no actions yet]
+penalty     = anomalyCount * 10
+score       = clamp(base + actionBonus - penalty, 0, 100)
+```
+
+**Interpretation:**
+
+| Score | Trust Level | Meaning |
+|---|---|---|
+| 80–100 | **Trusted** | Strong track record, no anomalies |
+| 60–79 | **Good** | Some anomalies or limited history |
+| 40–59 | **Caution** | Multiple anomaly reports |
+| 0–39 | **Flagged** | Significant community concern |
+
+Inactive agents always return `0`.
+
+### 7.4 Anomaly Reporting
+
+Any address may call `flagAnomaly()` — no permissioning required. This enables decentralized community oversight without a central authority.
+
+```solidity
+function flagAnomaly(
+    address agentAddress,
+    string calldata reason,
+    uint8 severity    // 1 (minor) to 10 (critical)
+) external
+```
 
 ---
 
-## 8. Reference Implementation
+## 8. Security Considerations
 
-### 8.1 Smart Contract
+### 8.1 Private Key Compromise
+
+If an agent's private key is compromised, the owner SHOULD immediately call `deactivateAgent()`. The immutable action history up to deactivation remains valid. A new agent address must be registered.
+
+### 8.2 Owner Key Compromise
+
+The owner wallet controls registration and deactivation. Use hardware wallets for owner keys. Multi-sig owner support is planned.
+
+### 8.3 Replay Attacks
+
+All state-changing calls require signed Ethereum transactions with nonce and chain ID. EVM replay protection is native.
+
+### 8.4 Front-Running
+
+The agent address is derived from a private key the attacker does not know. Front-running a registration provides no advantage.
+
+### 8.5 Smart Contract Security
+
+`AgentRegistry.sol` is non-upgradeable by design:
+- No admin keys or owner privileges at the contract level
+- No `SELFDESTRUCT`, no proxy patterns, no delegatecall
+- All state transitions are append-only
+- Deactivation is the only "destructive" operation, and is irreversible
+
+Formal verification and independent security audits are planned before mainnet deployment.
+
+### 8.6 Reputation Manipulation
+
+Reputation is computed from on-chain data only. Potential attack vectors:
+- **Sybil anomaly reports**: An attacker submits many anomaly reports from different addresses. Mitigation: future versions may require stake to flag anomalies, or weight reports by the reporter's own reputation.
+- **Reputation laundering**: An agent logs many successful trivial actions to offset anomaly penalties. Mitigation: future versions may weight action types differently.
+
+---
+
+## 9. Privacy Considerations
+
+### 9.1 Public Ledger Visibility
+
+All identifiers, registration events, and action logs are on a public blockchain. Operators MUST NOT store PII in agent names, metadata URIs, or action type strings.
+
+### 9.2 Hash-Only Action Storage
+
+Raw input/output data is NOT stored on-chain. Only `keccak256` hashes are stored. This ensures:
+- **Confidentiality**: Off-chain data remains private unless disclosed by the operator
+- **Verifiability**: Anyone with raw data can verify it matches the on-chain hash
+- **Minimization**: No prompt content or personal data touches the blockchain
+
+### 9.3 Selective Disclosure (Planned)
+
+ZK-proof action logs (planned for v0.6) will allow an agent to prove a category of action occurred without revealing the content.
+
+---
+
+## 10. Reference Implementation
+
+### 10.1 Smart Contract
 
 **`contracts/AgentRegistry.sol`** — Solidity 0.8.24, MIT license
-Repository: https://github.com/agentdid/agentdid
-Deployed (Sepolia testnet): *pending*
+- Repository: https://github.com/m31527/AgentDID
+- Deployed (Sepolia testnet): `0x05623871958D6d648953e64B1cdb562Adc28019B`
+- Explorer: https://sepolia.etherscan.io/address/0x05623871958D6d648953e64B1cdb562Adc28019B#code
 
-### 8.2 TypeScript SDK
+### 10.2 TypeScript SDK
 
 ```
 src/
@@ -461,47 +480,55 @@ src/
 └── types.ts      — TypeScript interfaces
 ```
 
-### 8.3 DID Resolver (Planned)
+### 10.3 Web Dashboard
 
-A W3C-compliant DID resolver conforming to the [DID Resolution](https://w3c-ccg.github.io/did-resolution/) specification is planned for v0.2. It will be published as:
+Live at https://agentdid.web.app — built with Next.js 14, deployed on Firebase Hosting + Cloud Functions.
 
-- An npm package: `@agentdid/resolver`
-- A standalone HTTP resolver endpoint
+### 10.4 DID Resolver (Planned v0.2)
+
+A W3C-compliant DID resolver conforming to the [DID Resolution](https://w3c-ccg.github.io/did-resolution/) specification is planned for v0.2:
+
+- npm package: `@agentdid/resolver`
+- HTTP resolver endpoint
 - Integration with the [Universal Resolver](https://dev.uniresolver.io/)
 
 ---
 
-## 9. Conformance
+## 11. Conformance
 
-### 9.1 Conformance Criteria
+### 11.1 Conformance Criteria
 
 An implementation is conformant with this specification if it:
 
 1. Produces `did:agent` identifiers matching the syntax in §2
 2. Produces DID Documents matching the structure in §3
 3. Implements all four CRUD operations as defined in §4
-4. Correctly constructs `keccak256` hashes as defined in §7.4
-5. Correctly interprets `ActionLogged` events as defined in §7.5
+4. Anchors a Capability Declaration hash at registration as defined in §5
+5. Correctly constructs `keccak256` hashes as defined in §6.4
+6. Correctly interprets `ActionLogged` events as defined in §6.5
+7. Computes reputation scores using the formula in §7.3
 
-### 9.2 Normative References
+### 11.2 Normative References
 
 | Reference | URI |
 |---|---|
 | W3C DID 1.0 | https://www.w3.org/TR/did-1.0/ |
+| DID Method Rubric v1.0 | https://www.w3.org/TR/did-rubric/ |
 | DID Resolution | https://w3c-ccg.github.io/did-resolution/ |
 | EcdsaSecp256k1RecoveryMethod2020 | https://w3id.org/security/suites/secp256k1-2020/v1 |
 | EIP-55 (Checksum Address) | https://eips.ethereum.org/EIPS/eip-55 |
 | EIP-155 (Chain ID) | https://eips.ethereum.org/EIPS/eip-155 |
 | keccak256 / SHA-3 | NIST FIPS 202 |
 
-### 9.3 Changelog
+### 11.3 Changelog
 
 | Version | Date | Notes |
 |---|---|---|
-| 0.1 | 2024-03 | Initial draft; single-chain; action logging protocol |
+| 0.1 | 2026-03 | Initial draft; single-chain; action logging protocol |
+| 0.2 | 2026-04 | Add Capability Declaration (§5); Reputation Registry (§7); successCount; updated DID Document schema; W3C DID Method Rubric reference |
 
 ---
 
-*This document is a living draft. Contributions are welcome via pull request to https://github.com/agentdid/agentdid.*
+*This document is a living draft. Contributions are welcome via pull request to https://github.com/m31527/AgentDID.*
 
 *AgentDID is a non-commercial open protocol. This specification is released under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).*
