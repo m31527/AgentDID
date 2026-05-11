@@ -66,7 +66,7 @@ Paste this content into `methods/agent.json`:
   "status": "provisional",
   "specification": "https://github.com/m31527/AgentDID/blob/main/docs/did-spec.md",
   "contact": "https://github.com/m31527/AgentDID/issues",
-  "notes": "Decentralized identity protocol for AI agents and autonomous systems. Extends W3C DID 1.0 with Capability Declaration (pre-declared agent intent), Action Logging (tamper-proof on-chain audit trail), and Reputation Registry (algorithmic trust score 0-100). Non-commercial, MIT licensed. Reference implementation deployed on Ethereum Sepolia testnet at 0x05623871958D6d648953e64B1cdb562Adc28019B. Live demo: https://agentdid.web.app"
+  "notes": "Decentralized identity protocol for AI agents and autonomous systems. Extends W3C DID 1.0 with Capability Declaration (pre-declared agent intent), Action Logging (tamper-proof on-chain audit trail), and Reputation Registry (algorithmic trust score 0-100). Non-commercial, MIT licensed. Reference implementation deployed on Ethereum Sepolia testnet at 0x05623871958D6d648953e64B1cdb562Adc28019B. Live demo: https://agentdid.net"
 }
 ```
 
@@ -99,7 +99,7 @@ for AI agents and autonomous systems.
 
 **Specification:** https://github.com/m31527/AgentDID/blob/main/docs/did-spec.md
 **Reference Implementation:** https://github.com/m31527/AgentDID
-**Live Demo:** https://agentdid.web.app
+**Live Demo:** https://agentdid.net
 **Deployed Contract (Sepolia):** `0x05623871958D6d648953e64B1cdb562Adc28019B`
 
 ## What makes did:agent unique
@@ -148,7 +148,7 @@ https://www.w3.org/TR/did-extensions-methods/#agent
 ## Checklist Before Submitting
 
 - [ ] `did-spec.md` is complete and publicly accessible on GitHub
-- [ ] Reference implementation is live (https://agentdid.web.app)
+- [ ] Reference implementation is live (https://agentdid.net)
 - [ ] Contract is deployed and verified on a public testnet
 - [ ] Spec covers all four CRUD operations
 - [ ] Spec references W3C DID 1.0 and DID Method Rubric

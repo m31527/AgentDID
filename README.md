@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="https://raw.githubusercontent.com/m31527/AgentDID/main/ui/public/logo.png" alt="AgentDID Logo" width="100" />
+
 # AgentDID
 
 ### Open Protocol for Decentralized AI Agent & Robot Identity
@@ -11,11 +13,11 @@
 [![Status](https://img.shields.io/badge/Status-Alpha-orange)](CHANGELOG.md)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![Sepolia](https://img.shields.io/badge/Sepolia-Deployed-blue)](https://sepolia.etherscan.io/address/0x05623871958D6d648953e64B1cdb562Adc28019B#code)
-[![Demo](https://img.shields.io/badge/Demo-agentdid.web.app-black)](https://agentdid.web.app)
+[![Demo](https://img.shields.io/badge/Demo-agentdid.net-black)](https://agentdid.net)
 
 ### 🌐 Live Demo
 
-**[https://agentdid.web.app](https://agentdid.web.app)** — Try the protocol in your browser, no setup needed.
+**[https://agentdid.net](https://agentdid.net)** — Try the protocol in your browser, no setup needed.
 
 ### Live Testnet Contract
 

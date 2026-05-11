@@ -3,7 +3,7 @@
 **Status:** Draft v0.2
 **Authors:** AgentDID Contributors
 **Repository:** https://github.com/m31527/AgentDID
-**Live Demo:** https://agentdid.web.app
+**Live Demo:** https://agentdid.net
 **Deployed Contract (Sepolia):** `0x05623871958D6d648953e64B1cdb562Adc28019B`
 **W3C DID Methods Registry:** Pending submission ([submission guide](w3c-submission.md))
 **License:** [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)
@@ -482,7 +482,7 @@ src/
 
 ### 10.3 Web Dashboard
 
-Live at https://agentdid.web.app — built with Next.js 14, deployed on Firebase Hosting + Cloud Functions.
+Live at https://agentdid.net — built with Next.js 14, deployed on Firebase Hosting + Cloud Functions.
 
 ### 10.4 DID Resolver (Planned v0.2)
 

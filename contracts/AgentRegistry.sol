@@ -12,7 +12,7 @@ pragma solidity ^0.8.24;
  *
  * DID method: did:agent:<address>
  * Spec:       https://github.com/m31527/AgentDID/blob/main/docs/did-spec.md
- * Demo:       https://agentdid.web.app
+ * Demo:       https://agentdid.net
  *
  * Each AI agent is assigned an Ethereum address as its cryptographic
  * identity (its "passport"). The owner registers agents with a full
