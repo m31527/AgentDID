@@ -14,10 +14,17 @@
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![Sepolia](https://img.shields.io/badge/Sepolia-Deployed-blue)](https://sepolia.etherscan.io/address/0x05623871958D6d648953e64B1cdb562Adc28019B#code)
 [![Demo](https://img.shields.io/badge/Demo-agentdid.net-black)](https://agentdid.net)
+[![Support on Giveth](https://img.shields.io/badge/Support-Giveth-00B779)](https://giveth.io/project/agentdid)
 
 ### 🌐 Live Demo
 
 **[https://agentdid.net](https://agentdid.net)** — Try the protocol in your browser, no setup needed.
+
+### 💚 Support This Project
+
+AgentDID is a public good — no token, no VC. If you believe in open AI agent identity infrastructure, consider supporting us on Giveth:
+
+**[https://giveth.io/project/agentdid](https://giveth.io/project/agentdid)**
 
 ### Live Testnet Contract
 
